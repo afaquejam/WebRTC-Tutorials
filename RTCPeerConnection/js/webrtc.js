@@ -79,7 +79,10 @@ function gotLocalIceCandidate(event) {
 function sendOffer(description) {
   // We assume that the SDP is sent over some signalling channel.
   // And then a method gets invoked which contains the following.
+  trace("Offer received at the remote peer.");
+
   remotePeerConnection.setRemoteDescription(description);
+  trace("Remote description of Remote peer set.");
 
   // Create Answer triggers the ICE gathering process at the remote peer.
   remotePeerConnection.createAnswer(gotRemoteDescription);
@@ -88,6 +91,7 @@ function sendOffer(description) {
 function gotRemoteDescription(description){
   // The remote peer also sets its local description without the ICE candidates.
   remotePeerConnection.setLocalDescription(description);
+  trace("Local description of the remote peer set.");
 }
 
 function gotRemoteIceCandidate(event){
@@ -103,7 +107,10 @@ function gotRemoteIceCandidate(event){
 function sendAnswer(description) {
   // We assume that the SDP is sent over some signalling channel.
   // And then a method gets invoked locally which contains the following.
+  trace("Answer received from the remote peer.");
+
   localPeerConnection.setRemoteDescription(description);
+  trace("Remote description of the local peer set.");
 }
 
 function gotRemoteStream(event){
