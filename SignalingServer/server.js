@@ -23,12 +23,12 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('sendOfferToPeer', function(offerData) {
     console.log("Received a request to send offer to a peer.");
-    socket.emit('sendingOffer', offerData);
+    io.sockets.emit('sendingOffer', offerData);
   });
 
   socket.on('sendAnswerToPeer', function(AnswerData) {
     console.log("Received a request to send Answer to the peer.");
-    socket.emit('sendingAnswer', AnswerData);
+    io.sockets.emit('sendingAnswer', AnswerData);
   });
 
 });

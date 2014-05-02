@@ -1,0 +1,28 @@
+<!DOCTYPE>
+<html>
+  <head>
+    <title> Video Chat </title>
+  </head>
+
+  <body>
+    <center>
+      <H1> Video Chat </H1>
+
+      <video id="localVideo" autoplay></video>
+      <video id="remoteVideo" autoplay></video>
+
+      <div>
+        <button id="startButton">Start</button>
+        <button id="callButton">Call</button>
+        <button id="hangupButton">Hang Up</button>
+        <button id="acceptCallButton"> Accept Call </button>
+      </div>
+
+    </center>
+
+    <script src="http://localhost:2014/socket.io/socket.io.js"></script>
+    <script src="js/webrtc.js"></script>
+
+  </body>
+
+</html>
