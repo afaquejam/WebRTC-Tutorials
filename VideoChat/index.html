@@ -7,12 +7,14 @@
   <body>
     <center>
       <H1> Video Chat </H1>
+      <H2> Remote View </H2>
+      <video id="remoteVideo" height=480 width=900  autoplay controls></video>
 
-      <video id="localVideo" autoplay></video>
-      <video id="remoteVideo" autoplay></video>
+      <H2> Local View </H2>
+      <video id="localVideo" height=240 width=320 autoplay controls></video>
 
+      <br / >
       <div>
-        <button id="startButton">Start</button>
         <button id="callButton">Call</button>
         <button id="hangupButton">Hang Up</button>
         <button id="acceptCallButton"> Accept Call </button>

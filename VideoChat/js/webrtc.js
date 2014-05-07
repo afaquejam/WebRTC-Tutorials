@@ -14,18 +14,14 @@ var constraints = {
 var localVideo = document.getElementById("localVideo");
 var remoteVideo = document.getElementById("remoteVideo");
 
-var startButton = document.getElementById("startButton");
 var callButton = document.getElementById("callButton");
 var hangupButton = document.getElementById("hangupButton");
 var acceptButton = document.getElementById("acceptCallButton");
 
-startButton.disabled = false;
-callButton.disabled = true;
 hangupButton.disabled = true;
 acceptButton.disabled = true;
 
-startButton.onclick = start;
-callButton.onclick = call;
+callButton.onclick = initiate;
 hangupButton.onclick = hangup;
 acceptButton.onclick = acceptCall;
 
@@ -33,21 +29,22 @@ function trace(text) {
   console.log((performance.now() / 1000).toFixed(3) + ": " + text);
 }
 
-function gotStream(stream){
+function gotLocalPeerLocalStream(stream){
   trace("Got Local Media Stream.");
   localVideo.src = URL.createObjectURL(stream);
   localStream = stream;
-  callButton.disabled = false;
+  callButton.disabled = true;
+  hangupButton.disabled = false;
+  call();
 }
 
-function start() {
-  startButton.disabled = true;
-  navigator.webkitGetUserMedia(constraints, gotStream, errorCallback);
+
+function initiate() {
+  navigator.webkitGetUserMedia(constraints, gotLocalPeerLocalStream,
+    errorCallback);
 }
 
 function call() {
-  callButton.disabled = true;
-  hangupButton.disabled = false;
   isCaller = true;
   trace("Starting call");
 
@@ -88,19 +85,12 @@ function sendOffer(description) {
 socket.on('sendingOffer', function (offer) {
   if (!isCaller) {
     acceptButton.disabled = false;
-    trace('Enabling the Accept Call Button.');
+    hangupButton.disabled = false;
+    callButton.disabled = true;
+    trace('Incoming Call.');
 
-    // For some reason, socket.io is not preseving the object type.
     offerData = new RTCSessionDescription(offer);
   }
-    // // For some reason, socket.io is not preseving the object type.
-  // offerData = new RTCSessionDescription(offerData);
-
-  // remotePeerConnection.setRemoteDescription(offerData);
-  // trace("Remote description of Remote peer set.");
-
-  // // Create Answer triggers the ICE gathering process at the remote peer.
-  // remotePeerConnection.createAnswer(gotRemoteDescription);
 });
 
 function acceptCall() {
@@ -115,13 +105,19 @@ function acceptCall() {
   remotePeerConnection.setRemoteDescription(offerData);
   trace("Remote description of Remote peer set.");
 
-  navigator.webkitGetUserMedia(constraints, function (stream){
-    localVideo.src = URL.createObjectURL(stream);
-    remotePeerConnection.addStream(stream);
-    //Create Answer triggers the ICE gathering process at the remote peer.
-    remotePeerConnection.createAnswer(gotRemoteDescription);
-  }, errorCallback);
+  navigator.webkitGetUserMedia(constraints, gotRemotePeerLocalStream,
+    errorCallback);
 
+}
+
+function gotRemotePeerLocalStream(stream){
+  callButton.disabled = true;
+
+  localVideo.src = URL.createObjectURL(stream);
+  remotePeerConnection.addStream(stream);
+
+  //Create Answer triggers the ICE gathering process at the remote peer.
+  remotePeerConnection.createAnswer(gotRemoteDescription);
 }
 
 function gotRemoteDescription(description){
@@ -163,16 +159,36 @@ function gotRemoteStream(event){
 }
 
 function hangup() {
-  trace("Ending call");
-  localPeerConnection.close();
-  remotePeerConnection.close();
-  localPeerConnection = null;
-  remotePeerConnection = null;
-  hangupButton.disabled = true;
-  callButton.disabled = false;
+  socket.emit('hangUpCall', null);
 }
+
+socket.on('closeCall', function (data) {
+  if (isCaller) {
+    localPeerConnection.close();
+    localPeerConnection = null;
+    localStream = null;
+    offerData = null;
+    isCaller = false;
+  } else {
+    if(remotePeerConnection) {
+      remotePeerConnection.close();
+      remotePeerConnection = null;
+    }
+  }
+
+  callButton.disabled = false;
+  hangupButton.disabled = true;
+  acceptCallButton.disabled = true;
+
+  localVideo.src = null;
+  remoteVideo.src = null;
+
+  trace("Call closed.");
+
+});
 
 function errorCallback() {
   console.log("Failed to get User Media!");
+  socket.emit('hangUpCall', null);
 }
 

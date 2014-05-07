@@ -31,6 +31,11 @@ io.sockets.on('connection', function(socket) {
     io.sockets.emit('sendingAnswer', AnswerData);
   });
 
+  socket.on('hangUpCall', function(data) {
+    console.log("Hanging up call.");
+    io.sockets.emit('closeCall', data);
+  });
+
 });
 
 
