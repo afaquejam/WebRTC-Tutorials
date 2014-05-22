@@ -1,10 +1,13 @@
-var socket = io.connect('http://localhost:2014');
+var socket = io.connect('http://131.160.13.18:2014');
 
 var localStream;
 var localPeerConnection;
+var anotherLocalPeerConnection;
 var remotePeerConnection;
+var localDescription;
 var offerData;
 var isReceiver;
+var receiverIdentifier;
 
 var constraints = {
   video: true,
@@ -44,17 +47,23 @@ socket.on('streamingStatus', function (isStreaming) {
     console.log("I will be streaming.");
   } else {
     isReceiver = true;
-    socket.emit('sendRequestOffer', true);
-    console.log("I will be receiving.");
+    receiverIdentifier = getRandomInt(0, 25000);
+    socket.emit('sendRequestOffer', receiverIdentifier);
+    console.log("I will be receiving." + receiverIdentifier);
   }
 
 });
 
 socket.on('requestOffer', function(data) {
   if(!isReceiver) {
+    receiverIdentifier = data;
     call();
   }
 });
+
+function callAnother(){
+
+}
 
 // hangupButton.disabled = true;
 // acceptButton.disabled = true;
@@ -112,13 +121,14 @@ function gotLocalIceCandidate(event) {
 
 function sendOffer(description) {
   trace("Sending offer to the other peer.");
-  socket.emit('sendOfferToPeer', description);
+  socket.emit('sendOfferToPeer', { id: receiverIdentifier,
+    data: description });
 }
 
 socket.on('sendingOffer', function (offer) {
-  if (isReceiver) {
-    trace('Incoming Call.');
-    offerData = new RTCSessionDescription(offer);
+  if (isReceiver && offer.id == receiverIdentifier) {
+    trace('Incoming Call: ' + offer.id);
+    offerData = new RTCSessionDescription(offer.data);
     acceptCall();
   }
 });
@@ -208,3 +218,7 @@ function errorCallback() {
   socket.emit('hangUpCall', null);
 }
 
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
