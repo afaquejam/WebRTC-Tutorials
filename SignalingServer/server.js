@@ -17,9 +17,16 @@ function handler (req, res) {
   });
 }
 
+var isStreaming = false;
 
 io.sockets.on('connection', function(socket) {
   console.log("Connection Established from some peer.");
+  socket.emit('streamingStatus', isStreaming);
+
+  socket.on('updateStreamingStatus', function(status) {
+    isStreaming = status;
+    console.log("Streaming status updated to: " + isStreaming);
+  });
 
   socket.on('sendOfferToPeer', function(offerData) {
     console.log("Received a request to send offer to a peer.");
