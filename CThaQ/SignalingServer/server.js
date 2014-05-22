@@ -28,6 +28,11 @@ io.sockets.on('connection', function(socket) {
     console.log("Streaming status updated to: " + isStreaming);
   });
 
+  socket.on('sendRequestOffer', function(data) {
+    console.log("I got request from the receiver asking an offer." + data);
+    io.sockets.emit('requestOffer', data);
+  });
+
   socket.on('sendOfferToPeer', function(offerData) {
     console.log("Received a request to send offer to a peer.");
     io.sockets.emit('sendingOffer', offerData);

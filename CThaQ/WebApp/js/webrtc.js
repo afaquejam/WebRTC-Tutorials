@@ -44,12 +44,17 @@ socket.on('streamingStatus', function (isStreaming) {
     console.log("I will be streaming.");
   } else {
     isReceiver = true;
+    socket.emit('sendRequestOffer', true);
     console.log("I will be receiving.");
   }
 
 });
 
-
+socket.on('requestOffer', function(data) {
+  if(!isReceiver) {
+    call();
+  }
+});
 
 // hangupButton.disabled = true;
 // acceptButton.disabled = true;
@@ -58,9 +63,9 @@ socket.on('streamingStatus', function (isStreaming) {
 // hangupButton.onclick = hangup;
 // acceptButton.onclick = acceptCall;
 
-// function trace(text) {
-//   console.log((performance.now() / 1000).toFixed(3) + ": " + text);
-// }
+function trace(text) {
+  console.log((performance.now() / 1000).toFixed(3) + ": " + text);
+}
 
 function gotLocalPeerLocalStream(stream){
   console.log("Got Local Media Stream.");
@@ -73,119 +78,101 @@ function getLocalStream() {
      errorCallback);
 }
 
-// function call() {
-//   isCaller = true;
-//   trace("Starting call");
+function call() {
+  console.log("Starting call");
 
-//   var servers = null;
+  var servers = null;
 
-//   localPeerConnection = new webkitRTCPeerConnection(servers);
+  localPeerConnection = new webkitRTCPeerConnection(servers);
 
-//   localPeerConnection.addStream(localStream);
-//   trace("Added localStream to localPeerConnection");
+  localPeerConnection.addStream(localStream);
+  trace("Added localStream to localPeerConnection");
 
-//   // createOffer triggers the ICE candidate gathering process at the local side.
-//   localPeerConnection.createOffer(gotLocalDescription);
-//   localPeerConnection.onicecandidate = gotLocalIceCandidate;
-//   localPeerConnection.onaddstream = gotRemoteStream;
-// }
+  // createOffer triggers the ICE candidate gathering process at the local side.
+  localPeerConnection.createOffer(gotLocalDescription);
+  localPeerConnection.onicecandidate = gotLocalIceCandidate;
+  // localPeerConnection.onaddstream = gotRemoteStream;
+}
 
-// function gotLocalDescription(description){
-//   // The Generated SDP does not contain ICE candidates.
-//   localPeerConnection.setLocalDescription(description);
-//   trace("Local Description Set.");
-// }
+function gotLocalDescription(description){
+  // The Generated SDP does not contain ICE candidates.
+  localPeerConnection.setLocalDescription(description);
+  trace("Local Description Set.");
+}
 
-// function gotLocalIceCandidate(event) {
-//   if (event.target.iceGatheringState == "complete") {
-//     trace("Local ICE candidates gathering complete.");
+function gotLocalIceCandidate(event) {
+  if (event.target.iceGatheringState == "complete") {
+    trace("Local ICE candidates gathering complete.");
 
-//     // Once the ICE gathering state is completed, create an SDP updated with
-//     // the ICE candidates.
-//     localPeerConnection.createOffer(sendOffer);
-//   }
-// }
+    // Once the ICE gathering state is completed, create an SDP updated with
+    // the ICE candidates.
+    localPeerConnection.createOffer(sendOffer);
+  }
+}
 
-// function sendOffer(description) {
-//   trace("Sending offer to the other peer.");
-//   socket.emit('sendOfferToPeer', description);
-// }
+function sendOffer(description) {
+  trace("Sending offer to the other peer.");
+  socket.emit('sendOfferToPeer', description);
+}
 
-// socket.on('sendingOffer', function (offer) {
-//   if (!isCaller) {
-//     acceptButton.disabled = false;
-//     hangupButton.disabled = false;
-//     callButton.disabled = true;
-//     trace('Incoming Call.');
+socket.on('sendingOffer', function (offer) {
+  if (isReceiver) {
+    trace('Incoming Call.');
+    offerData = new RTCSessionDescription(offer);
+    acceptCall();
+  }
+});
 
-//     offerData = new RTCSessionDescription(offer);
-//   }
-// });
+function acceptCall() {
+  var servers = null;
 
-// function acceptCall() {
-//   acceptCallButton.disabled = true;
-//   var servers = null;
+  remotePeerConnection = new webkitRTCPeerConnection(servers);
+  remotePeerConnection.onicecandidate = gotRemoteIceCandidate;
+  remotePeerConnection.onaddstream = gotRemoteStream;
 
-//   remotePeerConnection = new webkitRTCPeerConnection(servers);
+  remotePeerConnection.setRemoteDescription(offerData);
+  trace("Remote description of Remote peer set.");
 
-//   remotePeerConnection.onicecandidate = gotRemoteIceCandidate;
-//   remotePeerConnection.onaddstream = gotRemoteStream;
+  //Create Answer triggers the ICE gathering process at the remote peer.
+  remotePeerConnection.createAnswer(gotRemoteDescription);
+}
 
-//   remotePeerConnection.setRemoteDescription(offerData);
-//   trace("Remote description of Remote peer set.");
+function gotRemoteDescription(description){
+  // The remote peer also sets its local description without the ICE candidates.
+  remotePeerConnection.setLocalDescription(description);
+  trace("Local description of the remote peer set.");
+}
 
-//   navigator.webkitGetUserMedia(constraints, gotRemotePeerLocalStream,
-//     errorCallback);
+function gotRemoteIceCandidate(event){
+  if (event.target.iceGatheringState == "complete") {
+    trace("Remote ICE candidates gathering complete.");
 
-// }
+    // Once the ICE gathering state is completed, create an SDP updated with
+    // the ICE candidates.
+    remotePeerConnection.createAnswer(sendAnswer);
+  }
+}
 
-// function gotRemotePeerLocalStream(stream){
-//   callButton.disabled = true;
+function sendAnswer(description) {
+  trace("Sending Answer to the other peer.");
+  socket.emit('sendAnswerToPeer', description);
+}
 
-//   localVideo.src = URL.createObjectURL(stream);
-//   remotePeerConnection.addStream(stream);
+socket.on('sendingAnswer', function (AnswerData) {
+  if (!isReceiver) {
+    trace("Answer received from receiver.");
+    // For some reason, socket.io doesn't preserve the object type.
+    AnswerData = new RTCSessionDescription(AnswerData);
 
-//   //Create Answer triggers the ICE gathering process at the remote peer.
-//   remotePeerConnection.createAnswer(gotRemoteDescription);
-// }
+    localPeerConnection.setRemoteDescription(AnswerData);
+    trace("Remote description of the local peer set.");
+  }
+});
 
-// function gotRemoteDescription(description){
-//   // The remote peer also sets its local description without the ICE candidates.
-//   remotePeerConnection.setLocalDescription(description);
-//   trace("Local description of the remote peer set.");
-// }
-
-// function gotRemoteIceCandidate(event){
-//   if (event.target.iceGatheringState == "complete") {
-//     trace("Remote ICE candidates gathering complete.");
-
-//     // Once the ICE gathering state is completed, create an SDP updated with
-//     // the ICE candidates.
-//     remotePeerConnection.createAnswer(sendAnswer);
-//   }
-// }
-
-// function sendAnswer(description) {
-//   trace("Sending Answer to the other peer.");
-//   socket.emit('sendAnswerToPeer', description);
-// }
-
-// socket.on('sendingAnswer', function (AnswerData) {
-//   if (isCaller) {
-//     trace("Answer received from the remote peer.");
-//     // For some reason, socket.io doesn't preserve the object type.
-//     AnswerData = new RTCSessionDescription(AnswerData);
-
-//     localPeerConnection.setRemoteDescription(AnswerData);
-//     trace("Remote description of the local peer set.");
-//   }
-
-// });
-
-// function gotRemoteStream(event){
-//   remoteVideo.src = URL.createObjectURL(event.stream);
-//   trace("Received remote stream.");
-// }
+function gotRemoteStream(event){
+  videoElement.src = URL.createObjectURL(event.stream);
+  trace("Received remote stream.");
+}
 
 // function hangup() {
 //   socket.emit('hangUpCall', null);
