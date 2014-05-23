@@ -25,6 +25,11 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('updateStreamingStatus', function(status) {
     isStreaming = status;
+
+    if(!isStreaming) {
+      io.sockets.emit('closeCall', null);
+    }
+
     console.log("Streaming status updated to: " + isStreaming);
   });
 
@@ -42,10 +47,10 @@ io.sockets.on('connection', function(socket) {
     io.sockets.emit('sendingAnswer', AnswerData);
   });
 
-  socket.on('hangUpCall', function(data) {
-    console.log("Hanging up call.");
-    io.sockets.emit('closeCall', data);
-  });
+  // socket.on('hangUpCall', function(data) {
+  //   console.log("Hanging up call.");
+  //   io.sockets.emit('closeCall', data);
+  // });
 
 });
 

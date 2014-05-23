@@ -2,9 +2,7 @@ var socket = io.connect('http://131.160.13.18:2014');
 
 var localStream;
 var localPeerConnection;
-var anotherLocalPeerConnection;
 var remotePeerConnection;
-var localDescription;
 var offerData;
 var isReceiver;
 var receiverIdentifier;
@@ -30,7 +28,7 @@ function startStreaming() {
   getLocalStream();
 
   socket.emit('updateStreamingStatus', true);
-  console.log("Started streaming.");
+  trace("Started streaming.");
 }
 
 function stopStreaming() {
@@ -43,13 +41,12 @@ socket.on('streamingStatus', function (isStreaming) {
   if (!isStreaming) {
     isReceiver = false;
     startButton.disabled = false;
-
-    console.log("I will be streaming.");
+    trace("I will be streaming.");
   } else {
     isReceiver = true;
     receiverIdentifier = getRandomInt(0, 25000);
     socket.emit('sendRequestOffer', receiverIdentifier);
-    console.log("I will be receiving." + receiverIdentifier);
+    trace("I will be receiving." + receiverIdentifier);
   }
 
 });
@@ -61,23 +58,12 @@ socket.on('requestOffer', function(data) {
   }
 });
 
-function callAnother(){
-
-}
-
-// hangupButton.disabled = true;
-// acceptButton.disabled = true;
-
-// callButton.onclick = initiate;
-// hangupButton.onclick = hangup;
-// acceptButton.onclick = acceptCall;
-
 function trace(text) {
   console.log((performance.now() / 1000).toFixed(3) + ": " + text);
 }
 
 function gotLocalPeerLocalStream(stream){
-  console.log("Got Local Media Stream.");
+  trace("Got Local Media Stream.");
   videoElement.src = URL.createObjectURL(stream);
   localStream = stream;
 }
@@ -88,7 +74,7 @@ function getLocalStream() {
 }
 
 function call() {
-  console.log("Starting call");
+  trace("Starting call");
 
   var servers = null;
 
@@ -100,7 +86,6 @@ function call() {
   // createOffer triggers the ICE candidate gathering process at the local side.
   localPeerConnection.createOffer(gotLocalDescription);
   localPeerConnection.onicecandidate = gotLocalIceCandidate;
-  // localPeerConnection.onaddstream = gotRemoteStream;
 }
 
 function gotLocalDescription(description){
@@ -184,37 +169,25 @@ function gotRemoteStream(event){
   trace("Received remote stream.");
 }
 
-// function hangup() {
-//   socket.emit('hangUpCall', null);
-// }
+socket.on('closeCall', function (data) {
+  if (isReceiver) {
+    remotePeerConnection.close();
+    remotePeerConnection = null;
+  } else {
+    localPeerConnection.close();
+    localPeerConnection = null;
+    localStream = null;
+    offerData = null;
+    isReceiver = null;
+    startButton.disabled = false;
+  }
 
-// socket.on('closeCall', function (data) {
-//   if (isCaller) {
-//     localPeerConnection.close();
-//     localPeerConnection = null;
-//     localStream = null;
-//     offerData = null;
-//     isCaller = false;
-//   } else {
-//     if(remotePeerConnection) {
-//       remotePeerConnection.close();
-//       remotePeerConnection = null;
-//     }
-//   }
+  videoElement.src = null;
 
-//   callButton.disabled = false;
-//   hangupButton.disabled = true;
-//   acceptCallButton.disabled = true;
-
-//   localVideo.src = null;
-//   remoteVideo.src = null;
-
-//   trace("Call closed.");
-
-// });
+});
 
 function errorCallback() {
-  console.log("Failed to get User Media!");
+  trace("Failed to get User Media!");
   socket.emit('hangUpCall', null);
 }
 
