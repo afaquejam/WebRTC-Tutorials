@@ -8,7 +8,12 @@ var isReceiver;
 var receiverIdentifier;
 
 var constraints = {
-  video: true,
+  video: {
+    mandatory: {
+      minHeight: 720,
+      minWidth: 1280
+    }
+  },
   audio: false
 };
 
@@ -167,23 +172,15 @@ socket.on('sendingAnswer', function (AnswerData) {
 function gotRemoteStream(event){
   videoElement.src = URL.createObjectURL(event.stream);
   trace("Received remote stream.");
+  setTimeout(closeRemotePeerConnection, 20000);
 }
 
 socket.on('closeCall', function (data) {
   if (isReceiver) {
-    remotePeerConnection.close();
-    remotePeerConnection = null;
+    closeRemotePeerConnection();
   } else {
-    localPeerConnection.close();
-    localPeerConnection = null;
-    localStream = null;
-    offerData = null;
-    isReceiver = null;
-    startButton.disabled = false;
+    closeLocalPeerConnection();
   }
-
-  videoElement.src = null;
-
 });
 
 function errorCallback() {
@@ -191,6 +188,22 @@ function errorCallback() {
   socket.emit('hangUpCall', null);
 }
 
+function closeRemotePeerConnection() {
+  console.log("Closing Remote Peer Connection.");
+  remotePeerConnection.close();
+  remotePeerConnection = null;
+  videoElement.src = null;
+}
+
+function closeLocalPeerConnection() {
+  localPeerConnection.close();
+  localPeerConnection = null;
+  localStream = null;
+  offerData = null;
+  isReceiver = null;
+  startButton.disabled = false;
+  videoElement.src = null;
+}
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
