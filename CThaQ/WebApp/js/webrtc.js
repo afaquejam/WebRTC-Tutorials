@@ -18,11 +18,14 @@ var constraints = {
 };
 
 var videoElement = document.getElementById("videoElement");
+
 var startButton = document.getElementById("startButton");
 var stopButton = document.getElementById("stopButton");
+var infoButton = document.getElementById("infoButton");
 
 startButton.onclick = startStreaming;
 stopButton.onclick = stopStreaming;
+infoButton.onclick = refreshPage;
 
 startButton.disabled = true;
 stopButton.disabled = true;
@@ -46,10 +49,15 @@ socket.on('streamingStatus', function (isStreaming) {
   if (!isStreaming) {
     isReceiver = false;
     startButton.disabled = false;
+    infoButton.style.visibility = 'hidden';
     trace("I will be streaming.");
   } else {
     isReceiver = true;
-    receiverIdentifier = getRandomInt(0, 25000);
+    startButton.style.visibility = 'hidden';
+    stopButton.style.visibility = 'hidden';
+    infoButton.style.visibility = 'visible';
+    infoButton.innerHTML = " This live feed auto-closes after 20 seconds.";
+    receiverIdentifier = getRandomInt(0, 100000);
     socket.emit('sendRequestOffer', receiverIdentifier);
     trace("I will be receiving." + receiverIdentifier);
   }
@@ -193,6 +201,7 @@ function closeRemotePeerConnection() {
   remotePeerConnection.close();
   remotePeerConnection = null;
   videoElement.src = null;
+  infoButton.innerHTML = "Refresh the page to CThaQ again.";
 }
 
 function closeLocalPeerConnection() {
@@ -203,8 +212,16 @@ function closeLocalPeerConnection() {
   isReceiver = null;
   startButton.disabled = false;
   videoElement.src = null;
+  startButton.style.visibility = 'visible';
+  stopButton.style.visibility = 'visible';
 }
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function refreshPage() {
+  if(remotePeerConnection == null) {
+    location.reload(true);
+  }
 }
